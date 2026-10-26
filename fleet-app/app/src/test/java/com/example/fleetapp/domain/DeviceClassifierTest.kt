@@ -8,40 +8,42 @@ import org.junit.Test
 class DeviceClassifierTest {
 
     @Test
-    fun `deve tratar divisor nulo de bateria e classificar como CRITICO sem lancar excecao`() {
-        val capacityMah = 0
-        val hasZeroCapacity = capacityMah <= 0
-
-        val (status, reasons) = DeviceClassifier.classify(
-            batteryCapacityMah = capacityMah,
-            batteryLevelPercent = 0,
-            screenOnMinutes = 97,
-            hasZeroCapacityDefect = hasZeroCapacity
+    fun `deve retornar CRITICO se a capacidade nominal da bateria for zerada`() {
+        val (status, justifications) = DeviceClassifier.classify(
+            batteryCapacityMah = 0,
+            batteryLevelPercent = 50,
+            screenOnMinutes = 100,
+            hasZeroCapacityDefect = true
         )
 
         assertEquals(DeviceStatus.CRITICO, status)
-        assertTrue(reasons.any { it.contains("Capacidade nominal da bateria zerada") })
+        assertTrue(justifications.any { it.contains("Capacidade nominal da bateria zerada") })
     }
 
     @Test
-    fun `deve converter mWh para mAh corretamente no calculo da bateria`() {
-        val capacityMah = 5000
-        val rawEnergyMwh = 3773.0
-        val voltage = 3.85
-
-        // Conversão: 3773 mWh / 3.85 V = 980 mAh
-        val energyConsumedMah = rawEnergyMwh / voltage
-        val remainingMah = (capacityMah - energyConsumedMah).coerceAtLeast(0.0)
-        val remainingPercent = ((remainingMah / capacityMah) * 100).toInt()
-
-        // 5000 - 980 = 4020 mAh restantes (~80% de bateria)
-        assertEquals(80, remainingPercent)
-
-        val (status, _) = DeviceClassifier.classify(
-            batteryCapacityMah = capacityMah,
-            batteryLevelPercent = remainingPercent,
-            screenOnMinutes = 186
+    fun `deve retornar CRITICO se a bateria estiver abaixo de 15%`() {
+        val (status, justifications) = DeviceClassifier.classify(
+            batteryCapacityMah = 4000,
+            batteryLevelPercent = 14,
+            screenOnMinutes = 60
         )
+
+        assertEquals(DeviceStatus.CRITICO, status)
+        assertTrue(justifications.any { it.contains("14%") })
+    }
+
+    @Test
+    fun `deve retornar ATENCAO nos limites exatos entre 15% e 30%`() {
+        val (status1, _) = DeviceClassifier.classify(4000, 15, 60)
+        val (status2, _) = DeviceClassifier.classify(4000, 30, 60)
+
+        assertEquals(DeviceStatus.ATENCAO, status1)
+        assertEquals(DeviceStatus.ATENCAO, status2)
+    }
+
+    @Test
+    fun `deve retornar OK quando a bateria estiver acima de 30%`() {
+        val (status, _) = DeviceClassifier.classify(4000, 31, 60)
 
         assertEquals(DeviceStatus.OK, status)
     }

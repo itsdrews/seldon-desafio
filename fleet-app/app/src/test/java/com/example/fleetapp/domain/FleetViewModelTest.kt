@@ -5,6 +5,7 @@ import com.example.fleetapp.domain.model.Device
 import com.example.fleetapp.domain.model.DeviceStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -85,5 +86,30 @@ class FleetViewModelTest {
         val state = viewModel.uiState.value as FleetUiState.Success
         assertEquals(1, state.devices.size)
         assertEquals("DEV-01", state.devices.first().id)
+    }
+
+    @Test
+    fun `quando o filtro FAVORITOS e selecionado, lista apenas dispositivos favoritados`() = runTest(testDispatcher) {
+        backgroundScope.launch {
+            viewModel.uiState.collect {}
+        }
+
+        viewModel.onFilterSelected(FilterOption.FAVORITES)
+
+        val state = viewModel.uiState.value as FleetUiState.Success
+        assertEquals(1, state.devices.size)
+        assertEquals("DEV-02", state.devices.first().id)
+    }
+
+    @Test
+    fun `quando a acao toggleFavorite e executada, altera o estado do favorito`() = runTest(testDispatcher) {
+        backgroundScope.launch {
+            viewModel.uiState.collect {}
+        }
+
+        viewModel.toggleFavorite("DEV-01")
+
+        val device = fakeRepository.getDevicesFlow().first().find { it.id == "DEV-01" }
+        assertTrue(device?.isFavorite == true)
     }
 }
