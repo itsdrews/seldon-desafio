@@ -1,10 +1,11 @@
 package com.example.fleetapp.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.fleetapp.data.repository.FleetRepository
 import com.example.fleetapp.domain.model.Device
 import com.example.fleetapp.domain.model.DeviceStatus
+import com.example.fleetapp.domain.repository.DeviceRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -16,44 +17,53 @@ enum class FilterOption(val label: String) {
     OK("OK")
 }
 
+data class StatusCounts(
+    val all: Int = 0,
+    val favorites: Int = 0,
+    val critical: Int = 0,
+    val warning: Int = 0,
+    val ok: Int = 0
+)
+
 sealed interface FleetUiState {
     object Loading : FleetUiState
     data class Success(
         val devices: List<Device>,
-        val searchQuery: String,
+        val counts: StatusCounts,
         val selectedFilter: FilterOption
     ) : FleetUiState
     data class Error(val message: String) : FleetUiState
 }
 
-class FleetViewModel(private val repository: FleetRepository) : ViewModel() {
+class FleetViewModel(private val repository: DeviceRepository) : ViewModel() {
 
-    private val _searchQuery = MutableStateFlow("")
     private val _selectedFilter = MutableStateFlow(FilterOption.ALL)
 
     val uiState: StateFlow<FleetUiState> = combine(
         repository.getDevicesFlow(),
-        _searchQuery,
         _selectedFilter
-    ) { devices, query, filter ->
-        val filteredList = devices.filter { device ->
-            val matchesQuery = device.name.contains(query, ignoreCase = true) ||
-                    device.id.contains(query, ignoreCase = true)
+    ) { devices, filter ->
+        val counts = StatusCounts(
+            all = devices.size,
+            favorites = devices.count { it.isFavorite },
+            critical = devices.count { it.status == DeviceStatus.CRITICO },
+            warning = devices.count { it.status == DeviceStatus.ATENCAO },
+            ok = devices.count { it.status == DeviceStatus.OK }
+        )
 
-            val matchesFilter = when (filter) {
+        val filteredList = devices.filter { device ->
+            when (filter) {
                 FilterOption.ALL -> true
                 FilterOption.FAVORITES -> device.isFavorite
                 FilterOption.CRITICO -> device.status == DeviceStatus.CRITICO
                 FilterOption.ATENCAO -> device.status == DeviceStatus.ATENCAO
                 FilterOption.OK -> device.status == DeviceStatus.OK
             }
-
-            matchesQuery && matchesFilter
         }
 
         FleetUiState.Success(
             devices = filteredList,
-            searchQuery = query,
+            counts = counts,
             selectedFilter = filter
         ) as FleetUiState
     }.catch { exception ->
@@ -63,10 +73,6 @@ class FleetViewModel(private val repository: FleetRepository) : ViewModel() {
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = FleetUiState.Loading
     )
-
-    fun onSearchQueryChanged(newQuery: String) {
-        _searchQuery.value = newQuery
-    }
 
     fun onFilterSelected(filter: FilterOption) {
         _selectedFilter.value = filter

@@ -2,10 +2,10 @@ package com.example.fleetapp.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.fleetapp.data.repository.FleetRepository
+import com.example.fleetapp.domain.repository.DeviceRepository
 
 class FleetViewModelFactory(
-    private val repository: FleetRepository
+    private val repository: DeviceRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
