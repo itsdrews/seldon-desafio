@@ -11,6 +11,10 @@ jobs:
     name: Build & Run JVM Tests
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: fleet-app
+
     steps:
       - name: Checkout do Repositório
         uses: actions/checkout@v5
@@ -21,6 +25,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: gradle
+          cache-dependency-path: 'fleet-app/**/*.gradle*'
 
       - name: Garantir Permissão de Execução para o Gradle Wrapper
         run: chmod +x gradlew
