@@ -1,41 +1,176 @@
 package com.example.fleetapp.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.fleetapp.domain.model.Device
 import com.example.fleetapp.domain.model.DeviceStatus
 
+// Paleta Dark Blue & Shadow High-Contrast
+private val DarkBlueBackground = Color(0xFF0F172A) // Fundo Principal (Slate 900)
+private val DarkBlueSurface = Color(0xFF1E293B)    // Fundo de Cards (Slate 800)
+private val DarkBlueTopBar = Color(0xFF020617)     // Top Bar (Slate 950)
+private val TextPrimary = Color(0xFFF8FAFC)        // Texto de alto contraste
+private val TextSecondary = Color(0xFF94A3B8)      // Texto de apoio
+private val AccentBlue = Color(0xFF38BDF8)         // Destaque Azul Celeste
+
+private data class StatusStyle(
+    val containerColor: Color,
+    val contentColor: Color,
+    val icon: ImageVector,
+    val label: String
+)
+
 @Composable
 fun StatusBadge(status: DeviceStatus) {
-    val (color, text) = when (status) {
-        DeviceStatus.OK -> Color(0xFF2E7D32) to "OK"
-        DeviceStatus.ATENCAO -> Color(0xFFED6C02) to "ATENÇÃO"
-        DeviceStatus.CRITICO -> Color(0xFFD32F2F) to "CRÍTICO"
-    }
-    Surface(color = color, shape = MaterialTheme.shapes.small) {
-        Text(
-            text = text,
-            color = Color.White,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall
+    val style = when (status) {
+        DeviceStatus.OK -> StatusStyle(
+            containerColor = Color(0xFF064E3B),
+            contentColor = Color(0xFF34D399),
+            icon = Icons.Default.CheckCircle,
+            label = "OK"
         )
+        DeviceStatus.ATENCAO -> StatusStyle(
+            containerColor = Color(0xFF78350F),
+            contentColor = Color(0xFFFBBF24),
+            icon = Icons.Default.Warning,
+            label = "ATENÇÃO"
+        )
+        DeviceStatus.CRITICO -> StatusStyle(
+            containerColor = Color(0xFF7F1D1D),
+            contentColor = Color(0xFFF87171),
+            icon = Icons.Default.Error,
+            label = "CRÍTICO"
+        )
+    }
+
+    Surface(
+        color = style.containerColor,
+        contentColor = style.contentColor,
+        shape = MaterialTheme.shapes.small,
+        border = BorderStroke(1.dp, style.contentColor.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = style.icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp)
+            )
+            Text(
+                text = style.label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun DeviceCard(
+    device: Device,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit
+) {
+    val batteryColor = when (device.status) {
+        DeviceStatus.CRITICO -> Color(0xFFF87171)
+        DeviceStatus.ATENCAO -> Color(0xFFFBBF24)
+        DeviceStatus.OK -> Color(0xFF34D399)
+    }
+
+    ElevatedCard(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = CardDefaults.shape,
+                ambientColor = Color.Black,
+                spotColor = AccentBlue.copy(alpha = 0.5f)
+            ),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = DarkBlueSurface,
+            contentColor = TextPrimary
+        ),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = device.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = "ID: ${device.id}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                }
+                StatusBadge(status = device.status)
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                LinearProgressIndicator(
+                    progress = { (device.batteryLevel / 100f).coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(8.dp),
+                    color = batteryColor,
+                    trackColor = batteryColor.copy(alpha = 0.2f)
+                )
+
+                Text(
+                    text = "${device.batteryLevel}%",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = batteryColor
+                )
+
+                IconButton(
+                    onClick = onToggleFavorite,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = if (device.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorito",
+                        tint = if (device.isFavorite) Color(0xFFEF4444) else TextSecondary
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -45,31 +180,66 @@ fun FleetListScreen(
     viewModel: FleetViewModel,
     onDeviceClick: (String) -> Unit
 ) {
-    val state: FleetUiState by viewModel.uiState.collectAsState(initial = FleetUiState.Loading)
+    val state by viewModel.uiState.collectAsState()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Monitoramento de Frota") }) }
+        containerColor = DarkBlueBackground,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "Monitoramento de Frota",
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = DarkBlueTopBar
+                )
+            )
+        }
     ) { padding ->
         when (val s = state) {
-            is FleetUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
-            is FleetUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(s.message) }
+            is FleetUiState.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = AccentBlue)
+                }
+            }
+            is FleetUiState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = s.message,
+                        color = Color(0xFFF87171)
+                    )
+                }
+            }
             is FleetUiState.Success -> {
                 Column(
                     modifier = Modifier
                         .padding(padding)
                         .fillMaxSize()
                 ) {
-                    Text(
-                        text = "${s.counts.all} dispositivos lidos de Assets",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                    )
+                    Surface(
+                        color = DarkBlueSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "${s.counts.all} dispositivos lidos de Assets",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                        )
+                    }
 
                     LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(FilterOption.entries.toTypedArray()) { option ->
                             val countText = when (option) {
@@ -83,12 +253,21 @@ fun FleetListScreen(
                             FilterChip(
                                 selected = s.selectedFilter == option,
                                 onClick = { viewModel.onFilterSelected(option) },
-                                label = { Text("${option.label}$countText") }
+                                label = { Text("${option.label}$countText") },
+                                leadingIcon = if (s.selectedFilter == option) {
+                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                } else null,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = DarkBlueSurface,
+                                    labelColor = TextSecondary,
+                                    selectedContainerColor = AccentBlue,
+                                    selectedLabelColor = DarkBlueTopBar
+                                )
                             )
                         }
                     }
 
-                    HorizontalDivider()
+                    HorizontalDivider(color = DarkBlueSurface)
 
                     if (s.devices.isEmpty()) {
                         Box(
@@ -96,42 +275,22 @@ fun FleetListScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Nenhum dispositivo encontrado para os filtros selecionados.",
+                                text = "Nenhum dispositivo encontrado para o filtro selecionado.",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = TextSecondary
                             )
                         }
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            contentPadding = PaddingValues(bottom = 16.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
                             items(s.devices, key = { it.id }) { device ->
-                                ListItem(
-                                    headlineContent = {
-                                        Text(
-                                            text = device.name,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    },
-                                    supportingContent = {
-                                        Text("ID: ${device.id} • Bateria: ${device.batteryLevel}%")
-                                    },
-                                    trailingContent = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            StatusBadge(device.status)
-                                            IconButton(onClick = { viewModel.toggleFavorite(device.id) }) {
-                                                Icon(
-                                                    imageVector = if (device.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                                    contentDescription = if (device.isFavorite) "Remover favorito" else "Marcar favorito",
-                                                    tint = if (device.isFavorite) Color.Red else Color.Gray
-                                                )
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.clickable { onDeviceClick(device.id) }
+                                DeviceCard(
+                                    device = device,
+                                    onClick = { onDeviceClick(device.id) },
+                                    onToggleFavorite = { viewModel.toggleFavorite(device.id) }
                                 )
-                                HorizontalDivider()
                             }
                         }
                     }
@@ -150,23 +309,29 @@ fun DeviceDetailScreen(
 ) {
     BackHandler(onBack = onBack)
 
-    val state: FleetUiState by viewModel.uiState.collectAsState(initial = FleetUiState.Loading)
+    val state by viewModel.uiState.collectAsState()
     val device = (state as? FleetUiState.Success)?.devices?.find { it.id == deviceId }
 
     Scaffold(
+        containerColor = DarkBlueBackground,
         topBar = {
             TopAppBar(
-                title = { Text(device?.name ?: "Detalhes do Dispositivo") },
+                title = { Text(device?.name ?: "Detalhes do Dispositivo", color = TextPrimary) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = TextPrimary)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DarkBlueTopBar
+                )
             )
         }
     ) { padding ->
         if (device == null) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Dispositivo não encontrado.") }
+            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                Text("Dispositivo não encontrado.", color = TextSecondary)
+            }
         } else {
             Column(
                 modifier = Modifier
@@ -174,46 +339,121 @@ fun DeviceDetailScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // Header com Status e Favorito
+                ElevatedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(6.dp, CardDefaults.shape, spotColor = AccentBlue.copy(alpha = 0.3f)),
+                    colors = CardDefaults.elevatedCardColors(containerColor = DarkBlueSurface)
                 ) {
-                    StatusBadge(device.status)
-                    IconButton(onClick = { viewModel.toggleFavorite(device.id) }) {
-                        Icon(
-                            imageVector = if (device.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Favoritar",
-                            tint = if (device.isFavorite) Color.Red else Color.Gray
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Estado Operacional",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = TextSecondary
+                            )
+                            StatusBadge(status = device.status)
+                        }
+
+                        IconButton(onClick = { viewModel.toggleFavorite(device.id) }) {
+                            Icon(
+                                imageVector = if (device.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Favoritar",
+                                tint = if (device.isFavorite) Color(0xFFEF4444) else TextSecondary
+                            )
+                        }
+                    }
+                }
+
+                // Card de Métricas de Hardware / Energia
+                ElevatedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(6.dp, CardDefaults.shape, spotColor = AccentBlue.copy(alpha = 0.3f)),
+                    colors = CardDefaults.elevatedCardColors(containerColor = DarkBlueSurface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "Métricas da Bateria",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = AccentBlue
                         )
+                        HorizontalDivider(color = DarkBlueBackground)
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Identificador:", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                            Text(device.id, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Modelo:", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                            Text(device.name, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Capacidade Nominal:", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                            Text("${device.batteryCapacityMah} mAh", fontWeight = FontWeight.Bold, color = TextPrimary)
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Consumo Normalizado:", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                            Text("${String.format("%.1f", device.energyConsumedMah)} mAh", fontWeight = FontWeight.Bold, color = TextPrimary)
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Tempo de Tela Ligada:", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                            Text("${device.screenOnMinutes} min", fontWeight = FontWeight.Bold, color = TextPrimary)
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Nível Restante:", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                            Text("${device.batteryLevel}%", fontWeight = FontWeight.Bold, color = TextPrimary)
+                        }
                     }
                 }
 
-                Card(modifier = Modifier.fillMaxWidth()) {
+                // Card de Justificativa
+                ElevatedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(6.dp, CardDefaults.shape, spotColor = AccentBlue.copy(alpha = 0.3f)),
+                    colors = CardDefaults.elevatedCardColors(containerColor = DarkBlueSurface)
+                ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text("Atributos do Aparelho", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        HorizontalDivider()
-                        Text("• Identificador (ID): ${device.id}")
-                        Text("• Modelo: ${device.name}")
-                        Text("• Capacidade da Bateria: ${device.batteryCapacityMah} mAh")
-                        Text("• Consumo Normalizado: ${String.format("%.1f", device.energyConsumedMah)} mAh")
-                        Text("• Tempo de Tela Ligada: ${device.screenOnMinutes} min")
-                        Text("• Nível Restante Calculado: ${device.batteryLevel}%")
-                    }
-                }
+                        Text(
+                            text = "Análise de Diagnóstico",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = AccentBlue
+                        )
+                        HorizontalDivider(color = DarkBlueBackground)
 
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text("Justificativa da Classificação", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        HorizontalDivider()
                         device.justifications.forEach { reason ->
-                            Text("• $reason", style = MaterialTheme.typography.bodyMedium)
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Text("•", fontWeight = FontWeight.Bold, color = AccentBlue)
+                                Text(
+                                    text = reason,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextPrimary
+                                )
+                            }
                         }
                     }
                 }
