@@ -1,0 +1,43 @@
+name: Fleet App CI
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    name: Build & Run JVM Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v5
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Garantir Permissão de Execução para o Gradle Wrapper
+        run: chmod +x gradlew
+
+      - name: Validação Arquitetural (Garantir Domínio Puro)
+        run: |
+          echo "Verificando isolamento da camada de domínio..."
+          MATCHES=$(grep -rn "import android" app/src/main/java/com/example/fleetapp/domain/ || true)
+          if [ -n "$MATCHES" ]; then
+            echo "::error::VIOLAÇÃO ARQUITETURAL: Encontrados 'import android' dentro do pacote domain!"
+            echo "$MATCHES"
+            exit 1
+          fi
+          echo "Sucesso: Camada de domínio 100% desacoplada do Android SDK."
+
+      - name: Executar Testes Unitários na JVM (REQ-08)
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Validar Compilação do App (Debug Build)
+        run: ./gradlew assembleDebug --no-daemon
