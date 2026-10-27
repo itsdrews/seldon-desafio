@@ -74,9 +74,10 @@ class FleetViewModel(private val repository: DeviceRepository) : ViewModel() {
         initialValue = FleetUiState.Loading
     )
 
-    fun onFilterSelected(filter: FilterOption) {
-        _selectedFilter.value = filter
-    }
+  fun onFilterSelected(filter: FilterOption) {
+    android.util.Log.d("FleetViewModel", "Filtro alterado para a aba id: ${filter.name}") // sec-ignore
+    _selectedFilter.value = filter
+}
 
     fun toggleFavorite(deviceId: String) {
         viewModelScope.launch {
