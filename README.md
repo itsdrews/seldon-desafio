@@ -57,10 +57,10 @@ app/src/main/java/com/example/fleetapp/
     ├── FleetViewModel.kt    # Gerenciamento de Estado UI (StateFlow)
     └── FleetScreens.kt      # Composables Material 3 & Design Dark Blue
     └── FleetViewModelFactory.kt      # Factory para ViewModel
-
+```
 ## Execução de Testes
 
-```bash
+``` bash
 # No Windows
 .\gradlew.bat testDebugUnitTest
 
@@ -92,18 +92,3 @@ app/src/main/java/com/example/fleetapp/
 2. Atualização em Tempo Real: Conectar a camada de dados a uma API de WebSockets/gRPC para streaming de dados telemáticos contínuos dos dispositivos.
 
 3. Testes de UI Automatizados: Implementar suíte de testes de tela com ComposeTestRule em src/androidTest/ para simular cliques nos filtros e navegação de telas.
-
-
-##  Discriminação do Uso de IA
-
-O desenvolvimento deste projeto contou com a colaboração continuada do assistente de Inteligência Artificial (**Gemini / Google AI**). A atuação esteve estruturada da seguinte forma:
-
-| Etapa do Projeto | Atuação da IA | Escopo e Contribuição Específica | Validação Humana / Supervisão |
-| :--- | :--- | :--- | :--- |
-| **1. Arquitetura & Domínio** | Estruturação de pacotes segundo a Arquitetura Hexagonal (Clean Architecture) e garantia da pureza da camada `domain` (zero dependências do SDK Android). | Verificação manual da ausência de `import android.*` no pacote de domínio. |
-| **2. Tratamento de Defeitos** | Modelagem da conversão de unidades ($mWh \to mAh$) e implementação do *fallback* seguro para registros de bateria incompletos/zerados sem geração de `NaN`. | Validação das fórmulas de conversão e das justificativas textuais emitidas. |
-| **3. Testes Unitários (JVM)** | Criação de casos de teste em `DeviceClassifierTest` cobrindo fronteiras exatas ($14\%, 15\%, 30\%, 31\%$) e mocks com `UnconfinedTestDispatcher` em `FleetViewModelTest`. |
-| **4. Interface & Design System** | Redesign da UI com Jetpack Compose Material 3 (Dark Blue, `ElevatedCard`, `LinearProgressIndicator`, badges de status e sombras dinâmicas)
-| **5. Segurança (Trilha B)** | Escrita do script `scripts/security_check.sh` em Shell Script para auditoria estática do Manifest e detecção de vazamento de IDs em logs com suporte a `// sec-ignore`. | Teste prático de falso positivo provocando falha proposital no pipeline e aplicando a supressão inline. |
-| **6. CI/CD (GitHub Actions)** | Criação do workflow `.github/workflows/ci.yml`, depuração do isolamento da pasta `fleet-app/` (`working-directory`) e atualização para ações v5. | Inspeção dos logs de execução no GitHub Actions até obter a esteira 100% verde. |
-| **7. Documentação Técnica** | Redação & Estruturação | Apresentação e formatação do `PROTOCOLO.md` e do `README.md` com instruções de execução, decisões arquiteturais e limitações de validade. 
