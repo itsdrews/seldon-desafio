@@ -5,5 +5,4 @@ import kotlinx.coroutines.flow.Flow
 
 interface DeviceRepository {
     fun getDevicesFlow(): Flow<List<Device>>
-    suspend fun toggleFavorite(deviceId: String)
 }

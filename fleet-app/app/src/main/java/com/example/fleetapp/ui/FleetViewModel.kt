@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fleetapp.domain.model.Device
 import com.example.fleetapp.domain.model.DeviceStatus
 import com.example.fleetapp.domain.repository.DeviceRepository
+import com.example.fleetapp.domain.repository.FavoriteDeviceRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -35,7 +36,10 @@ sealed interface FleetUiState {
     data class Error(val message: String) : FleetUiState
 }
 
-class FleetViewModel(private val repository: DeviceRepository) : ViewModel() {
+class FleetViewModel(
+    private val repository: DeviceRepository,
+    private val favoriteRepository: FavoriteDeviceRepository
+) : ViewModel() {
 
     private val _selectedFilter = MutableStateFlow(FilterOption.ALL)
 
@@ -81,7 +85,7 @@ class FleetViewModel(private val repository: DeviceRepository) : ViewModel() {
 
     fun toggleFavorite(deviceId: String) {
         viewModelScope.launch {
-            repository.toggleFavorite(deviceId)
+            favoriteRepository.toggleFavorite(deviceId)
         }
     }
 }

@@ -1,11 +1,15 @@
 package com.example.fleetapp.ui
 
 import com.example.fleetapp.data.FakeDeviceRepository
+import com.example.fleetapp.data.FakeFavoriteDeviceRepository
 import com.example.fleetapp.domain.model.Device
 import com.example.fleetapp.domain.model.DeviceStatus
+import com.example.fleetapp.domain.repository.FavoriteDeviceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -19,6 +23,7 @@ class FleetViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var fakeRepository: FakeDeviceRepository
+    private lateinit var fakeFavoriteRepository: FakeFavoriteDeviceRepository
     private lateinit var viewModel: FleetViewModel
 
     @Before
@@ -51,7 +56,8 @@ class FleetViewModelTest {
         )
 
         fakeRepository = FakeDeviceRepository(testDevices)
-        viewModel = FleetViewModel(fakeRepository)
+        fakeFavoriteRepository = FakeFavoriteDeviceRepository(setOf("DEV-02"))
+        viewModel = FleetViewModel(fakeRepository, fakeFavoriteRepository)
     }
 
     @After
@@ -109,7 +115,8 @@ class FleetViewModelTest {
 
         viewModel.toggleFavorite("DEV-01")
 
-        val device = fakeRepository.getDevicesFlow().first().find { it.id == "DEV-01" }
-        assertTrue(device?.isFavorite == true)
+        launch {
+            assertTrue("DEV-01 deveria estar favoritado", fakeFavoriteRepository.isFavorite("DEV-01"))
+        }
     }
 }

@@ -15,16 +15,6 @@ class FakeDeviceRepository(
 
     override fun getDevicesFlow(): Flow<List<Device>> = devicesFlow
 
-    override suspend fun toggleFavorite(deviceId: String) {
-        devicesFlow.value = devicesFlow.value.map { device ->
-            if (device.id == deviceId) {
-                device.copy(isFavorite = !device.isFavorite)
-            } else {
-                device
-            }
-        }
-    }
-
     fun setDevices(devices: List<Device>) {
         devicesFlow.value = devices
     }
